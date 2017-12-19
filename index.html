@@ -1,0 +1,535 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Love Planet Earth - by Francesco Natali</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/2.0.2/anime.min.js"></script>
+    <script src="v2/api.js"></script>
+
+    <link href="glightbox/glightbox.min.css" rel="stylesheet">
+    
+    <script>
+      var earth;
+      var marker;
+      var markers = [];
+      var markerCounter = 0;
+      var parks;
+      var myTimer;
+      var introTimer;
+      var eartAnimation = true;
+      var timerRotateEarth;
+      var myLightbox;
+
+
+      /* scope preserver */
+      function showInfo(indexMarker, name) {
+        return function () {
+          // not used at the moment
+        };
+      }
+      
+      function createMarker(indexParks, lat, lng, name, country, area, established, desc) {
+        //
+        divPhotos = '<div class="div_photos">';
+        for (i=0; i < parks[indexParks].photos.length; i++) {
+          divPhotos = divPhotos + '<a class="glightbox' + indexParks + '" href="' + parks[indexParks].photos[i] + '"><img id=photo"' + indexParks + '-' + i + '" class="photo_park" src="' + parks[indexParks].photos[i] + '"></a>';
+        }
+        
+        divPhotos = divPhotos + '</div>';
+        //
+        textMarker = '<strong>' + name + '</strong><br>country: ' + country + '<br>area: ' + area + '<br>established:' + established + '<br><br>' + desc + divPhotos;
+        //
+        marker = WE.marker([lat, lng]).addTo(earth);
+        marker.bindPopup(textMarker, {maxWidth: 360, closeButton: true}).openPopup();
+        markerCounter++;
+        //
+        clearInterval(myTimer);
+        //
+        myLightbox = GLightbox({'selector': 'glightbox' + indexParks});
+      }
+
+      function flyTo(i, lat, lng) {
+        //
+        if (marker) { marker.closePopup(); }
+        //
+        eartAnimation = false;
+        var delta = 4;
+        earth.panInsideBounds([lat+delta,lat-delta, lng+delta, lng-delta], {heading: 0, tilt: 40, duration: 6});
+        //
+        myTimer = setInterval(function(){ createMarker(i, parks[i].lat, parks[i].lng, parks[i].name, parks[i].country, parks[i].area, parks[i].established, parks[i].desc ); }, 6000);
+      }
+
+      function pushParkToDiv(indexPark) {
+        divListPark = document.getElementById('div_parks');
+        currentParks = divListPark.innerHTML;
+        //
+        newPark = "<div class='div_park' onClick='flyTo(" + indexPark + "," + parks[indexPark].lat + "," + parks[indexPark].lng + ")'><img src='" + parks[indexPark].flag + "' style='height:26px; vertical-align: middle;'/> " + parks[indexPark].name + "</div>";
+        //
+        divListPark.innerHTML = currentParks + newPark;
+      }
+
+      function shuffle (array) {
+        var i = 0
+          , j = 0
+          , temp = null
+
+        for (i = array.length - 1; i > 0; i -= 1) {
+          j = Math.floor(Math.random() * (i + 1))
+          temp = array[i]
+          array[i] = array[j]
+          array[j] = temp
+        }
+      }
+
+      function loadParks() {
+        parks = JSON.parse(document.getElementById('parksJSON').innerHTML);
+        // to avoid any preference let's shuffle
+        shuffle(parks);
+        // console.log(parks);
+        for (i = 0; i < parks.length; i++) { 
+          pushParkToDiv(i);
+        }
+
+        document.getElementById('background_parks').style.display = "block";
+        document.getElementById('div_parks').className = "fadein";
+        document.getElementById('github').style.opacity = 1;
+        document.getElementById('github').className = "fadein";
+        clearInterval(myTimer2);
+      }
+
+      function initialZoom() {
+        console.log('initialZoom');
+        eartAnimation = false;
+        earth.panInsideBounds([39.217069338091534, 48.77182973907235, -55.52897468706989, 63.5289746035433], {heading: 0, tilt: 0, duration: 9});
+        clearInterval(myTimer);
+        timerRotateEarth = setInterval(function(){ eartAnimation = true; rotateEarth(); }, 8520);
+      }
+
+      function rotateEarth() {
+        console.log('rotateEarth');
+        var before = null;
+        requestAnimationFrame(function animate(now) {
+            if (eartAnimation) {
+              var c = earth.getPosition();
+              var elapsed = before? now - before: 0;
+              before = now;
+              earth.setCenter([c[0], c[1] + 0.08*(elapsed/30)]);
+              requestAnimationFrame(animate);
+            }
+        });
+        if (timerRotateEarth) { clearInterval(timerRotateEarth); }
+      }
+
+      function initialize() {
+
+        introTimer = setInterval(function(){ introTitles();}, 1200);
+
+        if (window.location.href.substr(0, 5) === 'file:')
+          alert("This file must be accessed via http:// or https:// to run properly.");
+
+        earth = new WE.map('earth_div',{atmosphere:true, sky:true});
+        earth.setView([108, 108], -7);
+        
+        /* WE.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(earth); */
+        WE.tileLayer('https://maps.tilehosting.com/styles/streets/{z}/{x}/{y}.png?key\x3dkSwrAdFeuIo6rD2Bm9dc').addTo(earth);
+        
+        myTimer = setInterval(function(){ initialZoom();}, 10500);
+        myTimer2 = setInterval(function(){ loadParks();}, 20000);
+        
+        // Start a simple rotation animation
+        rotateEarth();
+      }
+
+      function introTitles() {
+        
+        anime.timeline({loop: false})
+          .add({
+            delay: 5000
+          }).add({
+            targets: '.text_intro .letter',
+            opacity: [0,1],
+            easing: "easeInOutQuad",
+            duration: 2250,
+            delay: function(el, i) {
+              return 150 * (i+1)
+            }
+          }).add({
+            targets: '.text_intro .desc',
+            opacity: [0,1],
+            easing: "easeInOutQuad",
+            duration: 2250,
+            delay: function(el, i) {
+              return 150 * (i+1)
+            }
+          }).add({
+            targets: '.text_intro',
+            opacity: 0,
+            duration: 4200,
+            easing: "easeOutExpo",
+            delay: 3200,
+            complete: function(anim) {
+              document.getElementById("div_intro").style.display="none";
+            }
+          });
+
+          clearInterval(introTimer);
+      }
+    </script>
+    <style type="text/css">
+      @import url(https://fonts.googleapis.com/css?family=Open+Sans);
+      @import url(https://fonts.googleapis.com/css?family=Open+Sans:300);
+      @import url(https://fonts.googleapis.com/css?family=Palanquin:100);
+
+      @font-face {
+          font-family: musket;
+          src: url(fonts/Musket_regular.otf);
+          font-weight: 300;
+          font-style: normal
+      }
+
+      @font-face {
+          font-family: questa_granderegular;
+          src: url(fonts/2-Questa_Grande_Regular-webfont.eot);
+          src: url(fonts/2-Questa_Grande_Regular-webfont.eot?#iefix) format("embedded-opentype"), url(../fonts/2-Questa_Grande_Regular-webfont.woff2) format("woff2"), url(../fonts/2-Questa_Grande_Regular-webfont.woff) format("woff"), url(../fonts/2-Questa_Grande_Regular-webfont.ttf) format("truetype"), url(../fonts/2-Questa_Grande_Regular-webfont.svg#questa_granderegular) format("svg");
+          font-weight: 400;
+          font-style: normal
+      }
+
+      html, body{padding: 0; margin: 0; background-color: #000;}
+      #earth_div{top: 0; right: 0; bottom: 0; left: 0;
+                 position: absolute !important;
+                 background:#000; /* url(stars.jpg);background-size:cover; */
+                 z-index: 0;
+      }
+      
+      .fadein {
+        -webkit-animation: fadein 1s; /* Safari, Chrome and Opera > 12.1 */
+        -moz-animation: fadein 1s; /* Firefox < 16 */
+        -ms-animation: fadein 1s; /* Internet Explorer */
+        -o-animation: fadein 1s; /* Opera < 12.1 */
+        animation: fadein 1s;
+      }
+
+        @keyframes fadein {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        
+        /* Firefox < 16 */
+        @-moz-keyframes fadein {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        
+        /* Safari, Chrome and Opera > 12.1 */
+        @-webkit-keyframes fadein {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        
+        /* Internet Explorer */
+        @-ms-keyframes fadein {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        
+        /* Opera < 12.1 */
+        @-o-keyframes fadein {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        #background_parks {
+          display: none;position: absolute;top: 0;right: 0;z-index:1;width:250px;background:black;height:100vh;opacity:0.50;color:black;
+        }
+        #div_parks {
+          position: absolute;top: 0;right: 0;z-index:2;width:250px;background: transparent;height:100vh;opacity:1;color:white;overflow:scroll;
+        }
+        .div_park {
+          font-family: 'Lucida Grande';
+          font-size: 0.8em;
+          padding: 20px 0 20px 10px;
+          border-bottom: solid #444 1px;
+          cursor: pointer;
+        }
+        .div_park:hover {
+          background-color: #444;
+          cursor: pointer;
+        }
+        
+        #div_intro {
+          position: absolute;top: 0; right: 0; bottom: 0; left: 0;z-index:1;width:100%;background: transparent;height:100vh;opacity:1;color:white;
+        }
+        .text_intro {
+          font-family: Palanquin;
+          font-weight: 100;
+          text-align: center; 
+          top: 28%; 
+          position: relative;
+        }
+        .text_intro .letter {
+          opacity: 0;
+          text-shadow: 0 0 10px white;
+          font-size: 3em;
+        }
+        .text_intro .desc {
+          opacity: 0;
+          text-shadow: 0 0 10px white;
+          font-size: 0.73em;
+          color: darkgray;
+        }
+        .text_intro .author {
+          opacity: 0;
+          text-shadow: 0 0 10px white;
+          font-size: 0.73em;
+        }
+
+        .photo_park {
+          height: 50px;
+          padding: 10px 1px 0 0;          
+        }
+        .div_photos {
+          width: 360px;
+          overflow:auto;
+          white-space: nowrap;
+        }
+
+        #github { opacity: 0; }
+
+    </style>
+
+  </head>
+  <body onload="initialize()">
+    <div id="earth_div" class"fadein"></div>
+    
+    <div id="background_parks"></div>
+    <div id="div_parks"></div>
+    <div id="div_intro">
+        <h1 class="text_intro" style="letter-spacing: 2px;"><span class='letter' style='color:red;'>&hearts;</span> &nbsp;<span class='letter'>P</span><span class='letter'>l</span><span class='letter'>a</span><span class='letter'>n</span><span class='letter'>e</span><span class='letter'>t</span> &nbsp;<span class='letter'>E</span><span class='letter'>a</span><span class='letter'>r</span><span class='letter'>t</span><span class='letter'>h</span></h1>
+        <h3 class="text_intro" style="padding-left: 120px; margin: -40px 0 0 0; letter-spacing: 1px;"><span class='desc'>Discover the beauty of our planet through the most famous national parks</span></h3>
+        <!-- <h3 class="text_intro" style="color:darkgray; margin-top: 80px;"><span class='author'>• open-source project by <a href="https://francesconatali.com/" target="_blank" style="color:darkgray">Francesco Natali</a> •</span></h3> -->
+    </div>
+
+    <div id="github"><a href="https://github.com/francesconatali/loveplanetearth" target="_blank" class="github-corner" aria-label="View source on Github"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:gray; color:#151513; position: absolute; top: 0; border: 0; left: 0; transform: scale(-1, 1);" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a></div><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+
+    <script type="application/json" id="parksJSON">
+      [{
+        "name": "Yellowstone National Park",
+        "desc": "Yellowstone National Park is a nearly 3,500-sq.-mile wilderness recreation area atop a volcanic hot spot. Mostly in Wyoming, the park spreads into parts of Montana and Idaho too. Yellowstone features dramatic canyons, alpine rivers, lush forests, hot springs and gushing geysers, including its most famous, Old Faithful. It's also home to hundreds of animal species, including bears, wolves, bison, elk and antelope.",
+        "country": "USA",
+        "lat": 44.6626537,
+        "lng": -111.0835288,
+        "area": "8,991 km²",
+        "established": "March 1, 1872",
+        "flag": "flags/usa.png",
+        "photos": [
+          "http://cdn.yellowstoneparknet.com/images/home/summer.jpg",
+          "https://cdn.aarp.net/content/dam/travel/destination-images/yellowstone/hero/152887704_1400x720.imgcache.rev78040e14374a0d1928cc4f4330aeed92.web.jpg",
+          "http://jacksonhole-traveler-production.s3.amazonaws.com/wp-content/uploads/2014/11/yellowstone-national-park-5BNS1455.jpg"
+        ]
+      },
+      {"name": "Grand Canyon National Park",
+        "desc": "Grand Canyon National Park, in Arizona, is home to much of the immense Grand Canyon, with its layered bands of red rock revealing millions of years of geological history. Viewpoints include Mather Point, Yavapai Observation Station and architect Mary Colter’s Lookout Studio and her Desert View Watchtower. Lipan Point, with wide views of the canyon and Colorado River, is a popular, especially at sunrise and sunset.",
+        "country": "USA",
+        "lat": 36.0871615,
+        "lng": -113.9670842,
+        "area": "4,926 km²",
+        "established": "February 26, 1919",
+        "flag": "flags/usa.png",
+        "photos": [
+          "https://poemtour.com/wp-content/uploads/2016/08/1-grand-canyon-picture.jpg",
+          "https://media.deseretdigital.com/file/b41fa91284?crop=top:0|left:0|width:1260|height:670|gravity:Center&quality=55&interlace=none&resize=width:1260&order=resize,crop&c=14&a=e0f131f0",
+          "http://travel.home.sndimg.com/content/dam/images/travel/fullset/2012/03/26/8b/grand-canyon-national-park.rend.hgtvcom.1280.960.suffix/1491580896674.jpeg"
+        ]
+      },
+      {"name": "Yosemite National Park",
+        "desc": "Yosemite National Park is in California’s Sierra Nevada mountains. It’s famed for its giant, ancient sequoia trees, and for Tunnel View, the iconic vista of towering Bridalveil Fall and the granite cliffs of El Capitan and Half Dome. In Yosemite Village are shops, restaurants, lodging, the Yosemite Museum and the Ansel Adams Gallery, with prints of the photographer’s renowned black-and-white landscapes of the area.",
+        "country": "USA",
+        "lat": 37.8529755,
+        "lng": -119.8319845,
+        "area": "3,027 km²",
+        "established": "October 1, 1890",
+        "flag": "flags/usa.png",
+        "photos": [
+          "http://trailmob.com/images/trails/5984/yosemite__large.jpg",
+          "http://cdn.history.com/sites/2/2015/09/iStock_000038100826_Large.jpg",
+          "https://ssl.c.photoshelter.com/img-get2/I0000m4GChl7vpOc/fit=1000x750/IMG-0053-Vernal-Falls-Steps-Yosemite.jpg"
+        ]
+      },
+      {"name": "Banff National Park",
+        "desc": "Banff National Park is Canada's oldest national park and was established in 1885. Located in the Rocky Mountains, 110–180 kilometres west of Calgary in the province of Alberta, Banff encompasses 6,641 square kilometres (2,564 sq mi)[3] of mountainous terrain, with numerous glaciers and ice fields, dense coniferous forest, and alpine landscapes. The Icefields Parkway extends from Lake Louise, connecting to Jasper National Park in the north.",
+        "country": "Canada",
+        "lat": 51.4968464,
+        "lng": -115.9302502,
+        "area": "6,641 km²",
+        "established": "November 25, 1885",
+        "flag": "flags/canada.png",
+        "photos": [
+          "https://tce-live2.s3.amazonaws.com/media/media/be7a97e5-19d2-4df5-b348-a549dd5b3fe7.jpg",
+          "https://photofiles.alphacoders.com/270/27005.jpg",
+          "https://tce-live2.s3.amazonaws.com/media/media/1a727bc0-c154-4802-909f-572644a69db4.jpg"
+        ]
+      },
+      {"name": "Serengeti National Park",
+        "desc": "Serengeti National Park, in northern Tanzania, is known for its massive annual migration of wildebeest and zebra. Seeking new pasture, the herds move north from their breeding grounds in the grassy southern plains. Many cross the marshy western corridor’s crocodile-infested Grumeti River. Others veer northeast to the Lobo Hills, home to black eagles. Black rhinos inhabit the granite outcrops of the Moru Kopjes.",
+        "country": "Tanzania",
+        "lat": -2.3333333,
+        "lng": 34.8311393,
+        "area": "14,750 km²",
+        "established": "1951",
+        "flag": "flags/tanzania.png",
+        "photos": [
+          "https://www.tanzania-expeditions.com/wp-content/uploads/2014/05/serengeti-National-park.jpg",
+          "https://d1ljaggyrdca1l.cloudfront.net/wp-content/uploads/2017/03/lion-in-the-grass-in-serengeti-national-park-1600x900.jpg",
+          "http://dailyhdwallpaper.com/wp-content/uploads/Animal-Tumblr-Wallpaper.jpg"
+        ]
+      },
+      {"name": "Kruger National Park",
+        "desc": "Kruger National Park, in northeastern South Africa, is one of Africa’s largest game reserves. Its high density of wild animals includes the Big 5: lions, leopards, rhinos, elephants and buffalos. Hundreds of other mammals make their home here, as do diverse bird species such as vultures, eagles and storks. Mountains, bush plains and tropical forests are all part of the landscape.",
+        "country": "South Africa",
+        "lat": -23.9883848,
+        "lng": 31.5547402,
+        "area": "19,485 km²",
+        "established": "May 31, 1926",
+        "flag": "flags/south_africa.png",
+        "photos": [
+          "https://i.ytimg.com/vi/-Q9zB6VbMXQ/maxresdefault.jpg",
+          "https://d1ljaggyrdca1l.cloudfront.net/wp-content/uploads/2017/04/kruger-national-park-lion-1600x900.jpg",
+          "http://sausagetree.co.za/wp-content/uploads/2014/06/Iconic-Africa-Kruger-National-Park-Leopard.jpg"
+        ]
+      },
+      {"name": "Torres del Paine National Park",
+        "desc": "Torres del Paine National Park, in Chile’s Patagonia region, is known for its soaring mountains, bright blue icebergs that cleave from glaciers and golden pampas (grasslands) that shelter rare wildlife such as llama-like guanacos. Some of its most iconic sites are the 3 granite towers from which the park takes its name and the horn-shaped peaks called Cuernos del Paine.",
+        "country": "Chile",
+        "lat": -50.9423262,
+        "lng": -73.4067879,
+        "area": "1,814 km²",
+        "established": "May 13, 1959",
+        "flag": "flags/chile.png",
+        "photos": [
+          "https://d1ljaggyrdca1l.cloudfront.net/wp-content/uploads/2017/05/Three-Towers-and-glacial-lake-at-Torres-del-Paine-National-Park.jpg",
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Cuernos_del_Paine_from_Lake_Peho%C3%A9.jpg/1200px-Cuernos_del_Paine_from_Lake_Peho%C3%A9.jpg",
+          "https://media.architecturaldigest.com/photos/57e2dba0f2e2598d338a04fe/master/pass/torres-del-paine-national-park.jpg",
+          "https://a7004596b03128c36bd2-313eee040a6739ed30827c353f729c6b.ssl.cf1.rackcdn.com/143/6/large.jpg"
+        ]
+      },
+      {"name": "Zion National Park",
+        "desc": "Zion National Park is a southwest Utah nature preserve distinguished by Zion Canyon’s steep red cliffs. Zion Canyon Scenic Drive cuts through its main section, leading to forest trails along the Virgin River. The river flows to the Emerald Pools, which have waterfalls and a hanging garden. Also along the river, partly through deep chasms, is Zion Narrows wading hike.",
+        "country": "USA",
+        "lat": 37.2982022,
+        "lng": -113.0263005,
+        "area": "593.3 km²",
+        "established": "November 19, 1919",
+        "flag": "flags/usa.png",
+        "photos": [
+          "https://www.nationalparks.org/sites/default/files/styles/large_list_image_2x/public/Cedar_Breaks_National_Monument.JPG?itok=VTLF7T1J&timestamp=1468264861",
+          "http://cdn.grindtv.com/uploads/2017/07/ZionNationalPark.jpg",
+          "http://cdn.aarp.net/content/dam/travel/destination-images/utah/zion-national-park/1400-poi-zion-national-park-angels-landing.imgcache.rev1392905372908.web.jpg",
+          "https://images8.alphacoders.com/813/813552.jpg",
+          "https://s-media-cache-ak0.pinimg.com/originals/91/67/77/91677778bd88a6418efbc7c80aa0136b.jpg"
+        ]
+      },
+      {"name": "Fiordland National Park",
+        "desc": "Fiordland National Park is in the southwest of New Zealand’s South Island. It’s known for the glacier-carved fiords of Doubtful and Milford sounds. A beech forest trail on the sandy Milford shore offers views of towering Mitre Peak. Nearby, the craggy Earl Mountains are reflected in the glassy surface of Mirror Lakes. On the Cleddau River, the Chasm Walk passes over bridges with views of powerful waterfalls.",
+        "country": "New Zealand",
+        "lat": -45.614521,
+        "lng": 167.366052,
+        "area": "12,607 km²",
+        "established": "1952",
+        "flag": "flags/new_zealand.png",
+        "photos": [
+          "https://enterstation.files.wordpress.com/2012/07/hd-wallpaper-20.jpg",
+          "http://www.doc.govt.nz/pagefiles/62388/fiordland-nationa-park-hero.jpg",
+          "http://miriadna.com/desctopwalls/images/max/Fiordland-National-Park,-New-Zealand.jpg"
+        ]
+      },
+      {"name": "Great Smoky Mountains Park",
+        "desc": "Great Smoky Mountains National Park straddles the border between North Carolina and Tennessee. The sprawling landscape encompasses lush forests and an abundance of wildflowers that bloom year-round. Streams, rivers and waterfalls appear along hiking routes that include a segment of the Appalachian Trail. An observation tower tops Clingmans Dome, the highest peak, offering scenic views of the mist-covered mountains.",
+        "country": "USA",
+        "lat": 35.6117644,
+        "lng": -83.4895449,
+        "area": "2,114 km²",
+        "established": "June 15, 1934",
+        "flag": "flags/usa.png",
+        "photos": [
+          "https://romanticasheville.files.wordpress.com/2012/10/chimneysunrise2.jpg",
+          "https://www.tnvacation.com/sites/default/files/styles/slider_large/public/vendor/images/great-smoky-mountains-national-park_media_910_1.jpg",
+          "https://www.thewallpapers.org/photo/21881/Golden_Waters_Great_Smoky_Mountains_National_Park_Tennessee.jpg"
+        ]
+      },
+      {"name": "Namib-Naukluft National Park",
+        "desc": "The Namib-Naukluft National Park is a national park of Namibia encompassing part of the Namib Desert and the Naukluft mountain range.",
+        "country": "Namibia",
+        "lat": -23.127958,
+        "lng": 15.165920,
+        "area": "49,768 km²",
+        "established": "August 1, 1979",
+        "flag": "flags/namibia.png",
+        "photos": [
+          "http://1.bp.blogspot.com/-EYIVFSlACVE/U_NC70vmUjI/AAAAAAAAAYY/7Ukw4WMtpA4/s1600/Namib-Desert-Namib-Naukluft-National-Park-Namibia.jpg",
+          "http://www.wildencounters.net/weblog/wp-content/gallery/aerials-namibia/3.-Aerial-view-of-huge-sand-dunes-in-late-afternoon-light-Namib-Naukluft-National-Park-Namibia.jpg",
+          "https://www.wildlifearchives.com/wp-content/uploads/2017/11/namibnaukluft-national-park-namibia-joemcdaniel-1510501192n8g4k.jpg"
+        ]
+      },
+      {"name": "Plitvice Lakes National Park",
+        "desc": "Plitviče Lakes National Park is a 295-sq.-km forest reserve in central Croatia. It's known for a chain of 16 terraced lakes, joined by waterfalls, that extend into a limestone canyon. Walkways and hiking trails wind around and across the water, and an electric boat links the 12 upper and 4 lower lakes. The latter are the site of Veliki Slap, a 78m-high waterfall.",
+        "country": "Croatia",
+        "lat": 44.8653966,
+        "lng": 15.5798179,
+        "area": "296.8 km²",
+        "established": "1949",
+        "flag": "flags/croatia.png",
+        "photos": [
+          "https://i.ytimg.com/vi/TNKyJKXnWmI/maxresdefault.jpg",
+          "https://4.bp.blogspot.com/-Ytjdfxf18qQ/VPiaJprqq7I/AAAAAAABOL8/D9iCa5fNZ-c/s1600/11.jpg",
+          "https://www.adriaticdmc.hr/storage/upload/atrakcije/plitvice_waterfall_motiv__181617.jpg"
+        ]
+      },
+      {"name": "Canaima National Park",
+        "desc": "Canaima National Park encompasses 3 million hectares in southeastern Venezuela, where the country borders Brazil and Guyana. It’s distinguished by its numerous tepuis, massive flat-topped mountains that rise from grassy savanna and are often covered in mist. The 979m-tall Angel Falls waterfall flows from Auyantepui mountain into the Cañón del Diablo, a steep canyon surrounded by tropical forest.",
+        "country": "Venezuela",
+        "lat": 6.166667,
+        "lng": -62.5,
+        "area": "30,000 km²",
+        "established": "June 12, 1962",
+        "flag": "flags/venezuela.png",
+        "photos": [
+          "https://exploreformoreblog.files.wordpress.com/2015/10/158931-cascada-1-1.jpg"
+        ]
+      },
+      {"name": "Iguazú National Park",
+        "desc": "Iguazú National Park covers an area of subtropical rainforest in Argentina’s Misiones province, on the border with Brazil. Within the park on the Iguazú River, the renowned Iguazú Falls encompasses many separate cascades, including the iconic Garganta del Diablo or “Devil’s Throat.” The surrounding park features diverse wildlife including coatis, jaguars and toucans, plus trails and viewing platforms.",
+        "country": "Argentina",
+        "lat": -25.616667,
+        "lng": -54.333333,
+        "area": "672 km2",
+        "established": "1934",
+        "flag": "flags/argentina.png",
+        "photos": [
+          "http://whc.unesco.org/uploads/thumbs/site_0355_0001-750-0-20151104152418.jpg",
+          "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Iguassu_falls_rainbow.jpg/1280px-Iguassu_falls_rainbow.jpg",
+          "http://cld.escapehere.com/image/upload/t_cn,f_auto,q_auto,$w_800/eh/2013/07/Iguazu-Falls-Iguazu-National-Park-820x480.jpg",
+          "https://www.intrepidtravel.com/adventures/wp-content/uploads/2017/06/Iguazu-Falls-Argentina-or-Brazil-1.jpg" 
+        ]
+      },
+      {"name": "Snowdonia",
+        "desc": "Snowdonia is a region in northwest Wales concentrated around the mountains and glacial landforms of massive Snowdonia National Park. The park's historic Snowdon Mountain Railway climbs to the summit of Wales's highest mountain, Mount Snowdon, offering views across the sea to Ireland. The park is also home to an extensive network of trails, over 100 lakes and craggy peaks like Cader Idris and Tryfan.",
+        "country": "United Kingdom",
+        "lat": 53.068889,
+        "lng": -4.075556,
+        "area": "2,132 km²",
+        "established": "1951",
+        "flag": "flags/uk.png",
+        "photos": [
+          "http://www.grapeshotelsnowdonia.co.uk/admin/images/80236500_1465897380.jpg",
+          "http://www.lonelyplanet.com/travel-blog/tip-article/wordpress_uploads/2017/01/SNO5456-e1312e9924d6.jpg",
+          "https://www.surfsnowdonia.com/wp-content/uploads/2015/06/Snowdonia-Mountain-Railway.jpg",
+          "http://www.telegraph.co.uk/content/dam/travel/Spark/visit-wales/snowdonia-national-park-xlarge.jpg" 
+        ]
+      }
+    ]
+    </script>
+    <script src="glightbox/glightbox.min.js"></script>
+  </body>
+</html>
