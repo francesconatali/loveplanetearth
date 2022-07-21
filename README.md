@@ -1,4 +1,4 @@
-# loveplanetearth
+# :heart: planet earth
 A WebGL interactive journey to discover the beauty of our planet through the most famous national parks.
 
 ## demo
